@@ -1,0 +1,37 @@
+name: Push images
+
+on:
+  workflow_run:
+    workflows: Build and test
+    branches: master
+    types: completed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tag-version:
+        - 16-bullseye-slim
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    - name: Login to DockerHub
+      uses: docker/login-action@v1 
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/node-pw:latest,${{ secrets.DOCKER_USERNAME }}/node-pw:${{ matrix.tag-version }}
+        build-args: VERSION=${{ matrix.tag-version }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max

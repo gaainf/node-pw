@@ -1,0 +1,37 @@
+name: Build and test
+
+on:
+  push:
+    paths-ignore:
+    - "README.md"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Setup node
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: Build docker images
+      run: |
+        docker --version
+        yarn docker:build
+    - name: Run docker
+      run: yarn docker:run
+    - name: Test
+      run: |
+        ls -la
+        docker exec -i node ls -la
+        docker exec -i node whoami
+        docker exec -i --user root node chmod -R 777 .
+        docker exec -i node ls -la
+        yarn docker:install
+        yarn docker:test
+    - name: Stop docker
+      run: yarn docker:rm
